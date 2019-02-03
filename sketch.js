@@ -3,7 +3,7 @@ var w = 500;
 var cliffHeight = 400;
 var cliff = [];
 var NO_CLIFFS = 2;
-var speed = 1;
+var speed = 2;
 
 var player;
 var PLAYER_SIZE = 80;
@@ -13,8 +13,15 @@ var PLAYER_Y = h - cliffHeight - PLAYER_SIZE + 5;
 var moving = false;
 
 var bg;
+var song;
 
+var v = 0;
+var stick;
+var hasLanded = false;
 
+function prolad(){
+  //song = loadSound('graphics/maintune.mp3');
+}
 function setup() {
   createCanvas(w,h);
   for (let i = 0; i < NO_CLIFFS ; i++){
@@ -24,6 +31,8 @@ function setup() {
   player = new Player();
   bg = loadImage('graphics/background.jpg');
   textSize(30);
+  stick = new Stick(v);
+  //song.play();
 }
 
 function draw() {
@@ -38,13 +47,11 @@ function draw() {
   for (let i = 0; i < NO_CLIFFS ; i++){
     cliff[i].show();
   }
-  player.show();
-}
-function keyPressed(){
-  moving = true;
-  for (let i = 0; i < NO_CLIFFS ; i++){
-    cliff[i].x -= speed;
+  if (hasLanded){
+    moving = true;
   }
+  player.show();
+  stick.show();
 }
 
 class Cliff {
@@ -60,9 +67,11 @@ class Cliff {
   update(){
     this.x -= speed;
 
-    if(this.x < 0 && this. x > -1.5){
+    if(this.x >= 0 && this.x < speed){
       moving = false;
-      player.addScore();
+      stick = new Stick(v);
+      hasLanded = false;
+      v = 0;
     }
   }
   checkForOut(){
@@ -96,4 +105,81 @@ class Player {
   }
 
 
+}
+
+
+window.addEventListener("keypress", keyPress, false);
+window.addEventListener("keyup", keyRelease, false);
+
+function keyRelease(key)
+{
+  if(key.keyCode == 32)
+  {
+    stick.stopGrowing();
+  }
+}
+
+function keyPress(key)
+{
+  if (key.keyCode == 32)
+  {
+    v += 10;
+    //wasPressed = true;
+    console.log(v);
+  }
+}
+
+class Stick
+{ 
+  constructor(v)
+  {
+    this.x = 45;
+    this.y = h - cliffHeight;
+    this.grow = true;
+    this.rotation = 0;
+   }
+
+   stopGrowing()
+   {
+     this.grow = false;
+   }
+     
+
+  show()
+  {
+    if (hasLanded){
+      this.x -= speed;
+    }
+    fill(0);
+    translate(this.x, this.y);
+    if(!this.grow)
+    {
+      this.rotation += (Math.PI / 2) / 100;
+      rotate(this.rotation);
+      if(this.rotation > Math.PI/2 - 0.02)
+      {
+        if (!hasLanded){
+          correctLanding();
+        }
+        hasLanded = true;
+        this.rotation = Math.PI/2 - 0.02;
+      }
+    }
+    rect(0, 0, -2.25, -v);
+  }
+}
+function correctLanding(){
+  let furtherCliff;
+  for (let i = 0; i < NO_CLIFFS ; i++){
+    if (cliff[i].x > speed){
+      furtherCliff = cliff[i];
+    }
+  }
+  if (stick.x + v < furtherCliff.x || stick.x + v > furtherCliff.x + furtherCliff.wid){
+    console.log("MISSED");
+    player.resetScore();
+  }
+  else{
+    player.addScore();
+  }
 }
