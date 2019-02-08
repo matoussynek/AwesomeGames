@@ -1,28 +1,36 @@
-var h = 850;
+var h = 900 - 20;
 var w = 500;
-var cliffHeight = 400;
+var cliffHeight = 300;
 var cliff = [];
 var NO_CLIFFS = 2;
 var speed = 4;
 
 var player;
-var PLAYER_SIZE = 80;
+var PLAYER_SIZE = 90;
 var PLAYER_X = -5;
-var PLAYER_Y = h - cliffHeight - PLAYER_SIZE;
+var PLAYER_Y;
 
 var moving = false;
 
 var bg;
 var bgX = 0;
-var song;
 
 var v = 0;
 var stick;
 var hasLanded = false;
 var hasMissed = false;
 
+var menu;
+//var song;
+
+function preload(){
+  //song = loadSound('graphics/maintune.mp3');
+}
 function setup() {
-  createCanvas(w,h);
+  createCanvas((windowWidth > w) ? w : windowWidth, (windowHeight > h) ? h : windowHeight - 20);
+  h = height;
+  w = width;
+  PLAYER_Y = h - cliffHeight - PLAYER_SIZE;
   for (let i = 0; i < NO_CLIFFS ; i++){
     cliff[i] = new Cliff(w / NO_CLIFFS*i);
     cliff[i].show();
@@ -31,30 +39,49 @@ function setup() {
   bg = loadImage('graphics/treeline.svg');
   textSize(30);
   stick = new Stick(v);
-  song = loadSound('graphics/maintune.mp3', loaded);
-}
-function loaded(){
-  song.loop();
+  menu = new MainMenu(h, w);
 }
 function draw() {
-  //background(bg);
+  /*
+  if (!song.isPlaying()){
+    song.play();
+  }*/
   image(bg,bgX,0,2700,850);
-  if (moving){
-    for (let i = 0; i < NO_CLIFFS ; i++){
-      bgX = (bgX-speed/16)%2200;
-      cliff[i].checkForOut();
-      cliff[i].update();
-      
+  /*if (menu.isOn()){
+    menu.show();
+    if (mouseX >= menu.playX && mouseX <= menu.playX + menu.playSize && mouseY >= menu.playY && mouseY <= menu.playY + menu.playSize){
+        menu.hoverOn();
     }
+    else{
+      menu.hoverOff();
+    }
+    
   }
-  for (let i = 0; i < NO_CLIFFS ; i++){
-    cliff[i].show();
-  }
-  if (hasLanded){
-    moving = true;
-  }
-  player.show();
-  stick.show();
+  else{*/
+    if (mouseIsPressed && stick.grow){
+      stick.hasStarted = true;
+      v += 5;
+    }
+    if (!mouseIsPressed && stick.hasStarted){
+      stick.stopGrowing();
+    }
+    if (moving){
+      for (let i = 0; i < NO_CLIFFS ; i++){
+        bgX = (bgX-speed/16)%2200;
+        cliff[i].checkForOut();
+        cliff[i].update();
+        
+      }
+    }
+    for (let i = 0; i < NO_CLIFFS ; i++){
+      cliff[i].show();
+    }
+    if (hasLanded){
+      moving = true;
+    }
+    player.show();
+    stick.show();
+  //}
 }
 
 class Cliff {
@@ -80,6 +107,7 @@ class Cliff {
       stick = new Stick(v);
       hasLanded = false;
       hasMissed = false;
+      stick.hasStarted = false;
       v = 0;
     }
   }
@@ -103,19 +131,21 @@ class Player {
     this.y = PLAYER_Y;
     this.size = PLAYER_SIZE;
     this.imgStill = loadImage('graphics/playerStill.png');
-    this.imgMove = loadImage('graphics/playerMove.png');
+    this.imgMove = loadImage('graphics/playerMove.gif');
     this.imgFall = loadImage('graphics/playerFall.png');
+    this.imgStick = loadImage('graphics/playerStick.png');
     this.score = 0;
     this.falling = false;
   }
   show(){
-    image((!moving) ? this.imgStill : ((this.falling) ? this.imgFall : this.imgMove), this.x, this.y, this.size, this.size );
+    image((!moving) ? (stick.hasStarted) ? this.imgStick : this.imgStill : ((this.falling) ? this.imgFall : this.imgMove), this.x, this.y, 50, this.size );
 
     if (this.falling){
       this.y += speed*3;
       if (!moving){
         this.y = PLAYER_Y;
         this.falling = false;
+        menu.turnOn();
       }
     }
     fill(210);
@@ -135,25 +165,40 @@ class Player {
 
 }
 
-
+/*
 window.addEventListener("keypress", keyPress, false);
 window.addEventListener("keyup", keyRelease, false);
 
-function keyRelease(key)
+function keyReleased()
 {
-  if(key.keyCode == 32)
+  if(keyCode == 32 && !menu.isOn())
   {
     stick.stopGrowing();
   }
 }
 
-function keyPress(key)
+
+function keyPressed()
 {
-  if (key.keyCode == 32 && stick.grow)
+  if (keyCode == 32 && stick.grow  && !menu.isOn())
   {
+    stick.hasStarted = true;
+    v += 10;
+  }
+}*/
+/*
+function touchStarted(){
+  if (stick.grow  && !menu.isOn())
+  {
+    stick.hasStarted = true;
     v += 10;
   }
 }
+function touchEnded(){
+    stick.stopGrowing();
+    console.log("touch ended");
+}
+*/
 
 class Stick
 { 
@@ -163,6 +208,7 @@ class Stick
     this.y = h - cliffHeight;
     this.grow = true;
     this.rotation = 0;
+    this.hasStarted = false;
    }
 
    stopGrowing()
@@ -173,6 +219,7 @@ class Stick
 
   show()
   {
+    console.log("gothere " + v);
     if (hasLanded){
       this.x -= speed;
     }
@@ -180,7 +227,7 @@ class Stick
     translate(this.x, this.y);
     if(!this.grow)
     {
-      this.rotation += (Math.PI / 2) / 100;
+      this.rotation += (Math.PI / 2) / 65;
       rotate(this.rotation);
       if(this.rotation > Math.PI/2 - 0.02)
       {
@@ -193,6 +240,7 @@ class Stick
         }   
       }
     }
+    fill(0);
     rect(0, 0, -2.25, -v);
   }
 }
@@ -211,5 +259,61 @@ function correctLanding(){
   }
   else{
     player.addScore();
+  }
+}
+/*
+function mousePressed(){
+  if (menu.isOn){
+    if (mouseX >= menu.playX && mouseX <= menu.playX + menu.playSize && mouseY >= menu.playY && mouseY <= menu.playY + menu.playSize){
+      menu.turnOff();
+    }
+  }
+  else{
+      if (stick.grow){
+        stick.hasStarted = true;
+        v += 10;
+        console.log(v);
+      }
+  }
+  
+}
+function mouseReleased(){
+  if (!menu.isOn){
+    stick.stopGrowing();
+    console.log("touch ended");
+  }  
+}
+*/
+class MainMenu{
+  constructor(h,w){
+      this.hei = h;
+      this.wid = w;
+      this.isShown = true;
+      this.playButton = loadImage('graphics/play-button.png');
+      this.playButtonHover = loadImage('graphics/play-buttonHOVER.png');
+      this.playX = this.wid/2-128;
+      this.playY = this.hei/2-128;
+      this.playSize = 256;
+      this.hover = false;
+  }
+  show(){
+      if (this.isShown){
+          image((this.hover) ? this.playButtonHover : this.playButton, this.playX, this.playY, this.playSize, this.playSize);
+      }
+  }
+  turnOff(){
+      this.isShown = false;
+  }
+  turnOn(){
+      this.isShown = true;
+  }
+  isOn(){
+      return this.isShown;
+  }
+  hoverOn(){
+    this.hover = true;
+  }
+  hoverOff(){
+    this.hover = false;
   }
 }
